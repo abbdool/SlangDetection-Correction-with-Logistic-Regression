@@ -1,201 +1,289 @@
-📌 🔥 1. TRAINING PIPELINE
-🟦 1. Data Loading
-Sumber data:
-4 dataset slang (CSV):
-slang.csv
-gen_zz_words.csv
-genz_slang.csv
-all_slangs.csv
-NLTK corpus:
-words.words() → formal English words
-tambahan vocabulary modern
-🟦 2. Data Cleaning & Preprocessing
-Fungsi:
+# NLP SLANG CLASSIFICATION & NORMALIZATION SYSTEM
 
-Membersihkan dan menyaring data agar valid untuk training.
+## OVERALL SYSTEM DESCRIPTION
+Sistem ini merupakan pipeline Natural Language Processing (NLP) yang digunakan untuk mengklasifikasikan kata sebagai slang atau formal, serta melakukan normalisasi slang menjadi bentuk formal menggunakan kombinasi Machine Learning dan Rule-Based System.
 
-Proses:
-lowercase semua kata
-hapus whitespace berlebih
-hapus “poison words” (kata umum seperti: is, are, you, the, dll)
-validasi slang:
-maksimal 3 kata (biar bukan kalimat)
-remove duplicate dengan set()
-🟦 3. Dataset Construction
-Slang dataset:
-gabungan semua slang list
-Formal dataset:
-NLTK words + modern vocabulary
-lalu difilter agar tidak mengandung slang
-🟦 4. Data Balancing
-Tujuan:
+Sistem terdiri dari dua bagian utama:
+1. TRAINING PIPELINE (main.ipynb)
+2. DEPLOYMENT PIPELINE (app.py)
 
-Menghindari model bias ke salah satu kelas.
+---
 
-Cara:
-shuffle formal words
-ambil jumlah formal = jumlah slang
-🟦 5. Labeling
-Output dataset:
-Word	Label
-slang	1
-formal	0
-🟦 6. Train-Test Split
+# =========================
+# 1. TRAINING PIPELINE (main.ipynb)
+# =========================
+
+## 1. DATA LOADING
+Pada tahap ini, sistem mengumpulkan data dari beberapa sumber:
+
+- Slang datasets:
+  - slang.csv
+  - gen_zz_words.csv
+  - genz_slang.csv
+  - all_slangs.csv
+
+- Formal dataset:
+  - NLTK Words Corpus
+  - Vocabulary modern tambahan (computer, internet, coding, dll)
+
+Tujuan tahap ini adalah membangun dua kelas data utama:
+- Slang (label 1)
+- Formal (label 0)
+
+---
+
+## 2. DATA PREPROCESSING
+Tahap ini bertujuan membersihkan data mentah agar siap diproses model.
+
+Proses yang dilakukan:
+- Lowercasing semua kata
+- Menghapus whitespace berlebih menggunakan regex
+- Filtering “poison words” (kata umum seperti is, are, you, the, dll)
+- Validasi slang:
+  - Maksimal 3 kata (agar tidak berupa kalimat panjang)
+- Menghapus duplikasi data
+
+Metode ini memastikan data bersih dan relevan untuk training model NLP.
+
+---
+
+## 3. DATASET CONSTRUCTION & LABELING
+Pada tahap ini, data slang dan formal digabung menjadi satu dataset.
+
+Labeling:
+- Slang → 1
+- Formal → 0
+
+Hasil akhir berupa dataset supervised learning yang siap digunakan untuk training model klasifikasi.
+
+---
+
+## 4. DATA BALANCING
+Karena jumlah data formal jauh lebih besar dibanding slang, dilakukan balancing.
+
 Metode:
-80% training
-20% testing
-stratified split (biar distribusi class tetap sama)
-🟦 7. Feature Extraction (TF-IDF Character N-Gram)
-Tools:
-TfidfVectorizer
-Konfigurasi:
-analyzer = character
-ngram_range = (2,4)
-Fungsi:
-Mengubah kata menjadi representasi angka berdasarkan pola karakter.
+- Random shuffle data formal
+- Downsampling formal agar jumlahnya sama dengan slang
+
+Tujuan:
+Menghindari bias model terhadap kelas formal.
+
+---
+
+## 5. TRAIN-TEST SPLIT
+Dataset dibagi menjadi:
+- 80% training data
+- 20% testing data
+
+Metode:
+- Stratified split digunakan agar distribusi kelas tetap seimbang di train dan test set.
+
+---
+
+## 6. FEATURE EXTRACTION (TF-IDF + CHARACTER N-GRAM)
+Ini adalah tahap konversi teks menjadi representasi numerik.
+
+Metode yang digunakan:
+- TF-IDF (Term Frequency - Inverse Document Frequency)
+- Character-Level N-Gram (2–4)
+
+Cara kerja:
+Setiap kata dipecah menjadi pola karakter, contoh:
+"rizz" → ["ri", "iz", "zz"]
+
+Alasan penggunaan:
+Slang sering memiliki variasi penulisan sehingga character-level representation lebih efektif dibanding word-level.
+
+Output dari tahap ini adalah feature matrix yang digunakan untuk training model.
+
+---
+
+## 7. MODEL TRAINING (LOGISTIC REGRESSION)
+Model yang digunakan adalah Logistic Regression.
+
+Cara kerja dalam pipeline:
+- Input: TF-IDF feature vector
+- Proses: menghitung probabilitas kelas
+- Output:
+  - Probability slang (1)
+  - Probability formal (0)
+
+Keputusan model:
+Jika p_slang lebih dominan → diklasifikasikan sebagai slang
+
+Alasan penggunaan:
+- Efisien untuk binary classification
+- Stabil untuk high-dimensional sparse data (TF-IDF)
+
+---
+
+## 8. MODEL EVALUATION
+Model dievaluasi menggunakan data testing dengan metrik:
+
+- Accuracy → tingkat benar keseluruhan
+- Precision → ketepatan prediksi slang
+- Recall → kemampuan menangkap slang
+- F1 Score → keseimbangan precision & recall
+- Confusion Matrix → analisis kesalahan prediksi
+
+Tujuan:
+Mengukur performa generalisasi model terhadap data baru.
+
+---
+
+## 9. RULE-BASED SYSTEM (SLANG DICTIONARY)
+Selain machine learning, sistem menggunakan dictionary-based normalization.
+
+Isi dictionary:
+- Dataset slang expansion
+- Custom slang mapping manual
 
 Contoh:
-"rizz" → "ri", "iz", "zz", dll
-🟦 8. Model Training
-Algoritma:
-Logistic Regression
-Fungsi:
-belajar membedakan slang vs formal berdasarkan TF-IDF feature
-🟦 9. Model Evaluation
-Metrics:
-Accuracy
-Precision
-Recall
-F1 Score
-Confusion Matrix
+- rizz → charisma
+- sus → suspicious
+- frfr → for real
+
+Fungsi dalam pipeline:
+Digunakan sebagai prioritas utama sebelum model ML, untuk meningkatkan akurasi normalisasi slang yang sudah dikenal.
+
+---
+
+## 10. MODEL SAVING (DEPLOYMENT ARTIFACTS)
+Setelah training selesai, tiga komponen disimpan:
+
+- Logistic Regression Model → slang_classifier.pkl
+- TF-IDF Vectorizer → tfidf_vectorizer.pkl
+- Slang Dictionary → slang_dictionary.pkl
+
 Tujuan:
-Mengukur performa model di data test
+Agar model tidak perlu training ulang saat digunakan di aplikasi.
 
-🟦 10. Slang Dictionary Construction (Rule-Based System)
-Isi:
-slang dari dataset (acronym → expansion)
-custom dictionary manual
-Fungsi:
-mempercepat normalisasi slang tanpa ML
-meningkatkan akurasi sistem
-🟦 11. Model Saving (Deployment Preparation)
-Disimpan pakai pickle:
-slang_classifier.pkl → model Logistic Regression
-tfidf_vectorizer.pkl → feature extractor
-slang_dictionary.pkl → kamus slang
-📌 🚀 2. DEPLOYMENT / INFERENCE PIPELINE
-🟩 1. Load Model & Assets
+---
 
-Saat aplikasi start:
+# =========================
+# 2. DEPLOYMENT PIPELINE (app.py)
+# =========================
 
-Load Logistic Regression model
-Load TF-IDF vectorizer
-Load slang dictionary
-Hasil:
+## 1. MODEL LOADING
+Saat aplikasi dijalankan, sistem memuat:
+- Trained Logistic Regression model
+- TF-IDF vectorizer
+- Slang dictionary
 
-Sistem siap menerima input user
+Tanpa tahap ini, sistem tidak dapat melakukan prediksi.
 
-🟩 2. Preprocessing Input User
+---
 
-Input contoh:
+## 2. INPUT PROCESSING
+User mengirimkan teks input.
 
+Contoh:
 "that guy is sus frfr"
 
-Tidak dilakukan training lagi, hanya:
+Teks kemudian:
+- Dibersihkan ringan
+- Disiapkan untuk tokenisasi
 
-parsing text
-tokenization
-regex cleaning ringan
-🟩 3. Multi-Word Slang Detection (RULE BASED FIRST)
-Contoh:
-"no cap"
-"low key"
-Proses:
-sistem cek phrase dulu sebelum split kata
-jika ditemukan:
-langsung diganti ke formal meaning
-dicatat sebagai perubahan
-🟩 4. Tokenization
+---
 
-Setelah multi-word slang diproses:
-
-teks di-split jadi token per kata
+## 3. MULTI-WORD SLANG HANDLING (RULE-BASED PRIORITY)
+Sebelum tokenisasi, sistem mengecek multi-word slang.
 
 Contoh:
+- "no cap"
+- "low key"
 
-["that", "guy", "is", "sus"]
-🟩 5. Word Classification (HYBRID SYSTEM)
+Jika ditemukan:
+- langsung diganti ke makna formal
+- dicatat sebagai perubahan
 
-Untuk setiap kata:
+Tahap ini menggunakan dictionary-based system.
 
-🔹 Step A — Dictionary Check (PRIORITY 1)
+---
 
+## 4. TOKENIZATION
+Setelah multi-word slang diproses, teks dipecah menjadi token per kata.
+
+Contoh:
+"that guy is sus"
+→ ["that", "guy", "is", "sus"]
+
+---
+
+## 5. WORD PROCESSING PIPELINE (HYBRID SYSTEM)
+
+Setiap token diproses menggunakan dua pendekatan:
+
+---
+
+### (A) DICTIONARY CHECK (PRIORITAS 1)
 Jika kata ada di slang dictionary:
+- langsung dikonversi ke arti formal
+- tidak masuk ke ML model
 
+Contoh:
 sus → suspicious
-rizz → charisma
 
-➡️ langsung diganti (RULE-BASED OUTPUT)
+---
 
-🔹 Step B — ML Prediction (FALLBACK)
+### (B) MACHINE LEARNING CLASSIFICATION (FALLBACK)
 
-Jika tidak ada di dictionary:
+Jika kata tidak ada di dictionary:
 
-Proses:
-TF-IDF vectorizer transform kata
-Logistic Regression predict probability
+Langkah:
+1. TF-IDF vectorizer mengubah kata menjadi vector
+2. Logistic Regression menghitung probabilitas
 
 Output:
+- p_slang
+- p_formal
 
-p_slang
-p_formal
 Decision rule:
-if p_slang >= 0.70:
-    dianggap slang
-else:
-    dianggap formal
-🟩 6. Reconstruction Output Text
+Jika p_slang ≥ 0.70 → dianggap slang
+Jika tidak → dianggap formal
 
+---
+
+## 6. TEXT RECONSTRUCTION
 Setelah semua token diproses:
+- kata digabung kembali
+- menghasilkan kalimat final yang sudah dinormalisasi
 
-kata digabung kembali
-menghasilkan teks final
-🟩 7. Output Response (API / UI)
+---
 
-Output JSON:
+## 7. OUTPUT RESPONSE
+Sistem mengembalikan hasil dalam bentuk JSON:
 
-{
-  "original": "...",
-  "corrected": "...",
-  "changes": [...],
-  "word_details": [...]
-}
-📌 🔗 3. CONTOH END-TO-END FLOW
+- original text
+- corrected text
+- list perubahan kata
+- detail probabilitas setiap kata
+
+---
+
+# =========================
+# 3. EXAMPLE FLOW
+# =========================
+
 Input:
 "that guy is sus frfr"
-Step 1: Multi-word slang
-frfr → for real for real
-Step 2: Tokenize
-["that", "guy", "is", "sus", "for", "real", "for", "real"]
-Step 3: Dictionary check
-sus → suspicious
-Step 4: ML check
-that, guy, is → formal
-for, real → formal
+
+Step:
+1. frfr → for real for real (dictionary)
+2. sus → suspicious (dictionary)
+3. remaining words → ML check
+
 Output:
 "that guy is suspicious for real for real"
-📌 🧠 4. HUBUNGAN MAIN.IPYNB VS APP.PY
-🔥 main.ipynb (TRAINING)
-bikin otak model
-belajar dari dataset
-menghasilkan:
-model
-vectorizer
-dictionary
-🚀 app.py (INFERENCE)
-pakai otak yang sudah jadi
-tidak training lagi
-hanya:
-predict
-normalize
-return hasil
+
+---
+
+# =========================
+# 4. SUMMARY ARCHITECTURE
+# =========================
+
+TRAINING:
+Data → Preprocessing → Labeling → Balancing → TF-IDF (Char N-Gram) → Logistic Regression → Evaluation → Save Model
+
+DEPLOYMENT:
+Load Model → Input Text → Rule-Based Check → Tokenization → ML Classification → Output Text
