@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="English Slang Correction System — Detect and correct internet slang using Machine Learning (TF-IDF + Logistic Regression)">
+    <title>Slang Corrector — English Slang Correction System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Animated background -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                        <path d="M4 8L16 4L28 8V18C28 24 22 28 16 30C10 28 4 24 4 18V8Z" stroke="url(#grad)" stroke-width="2" fill="none"/>
+                        <path d="M10 16L14 20L22 12" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <defs><linearGradient id="grad" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs>
+                    </svg>
+                </div>
+                <div>
+                    <h1>English Slang Corrector</h1>
+                    <p class="subtitle">Slang Detection &amp; Correction</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Input Section -->
+            <section class="card input-section" id="input-section">
+                <div class="card-header">
+                    <div class="card-icon input-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </div>
+                    <h2>Input Text</h2>
+                    <span class="badge">Enter your text below</span>
+                </div>
+                <textarea id="input-text" placeholder="Type or paste text with slang here...&#10;&#10;Examples:&#10;• tbh idk what ur talking about lol&#10;• omg brb gonna grab food rn&#10;• ngl that was lowkey fire no cap" rows="6"></textarea>
+                
+                <div class="btn-row">
+                    <button id="correct-btn" class="btn btn-primary" onclick="correctText()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <span>Correct Text</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearAll()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="1 4 1 10 7 10"/>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                        </svg>
+                        <span>Clear</span>
+                    </button>
+                    <button class="btn btn-ghost" onclick="loadExample()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                        <span>Load Example</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Loading -->
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>Analyzing text for slang...</p>
+            </div>
+
+            <!-- Results Section -->
+            <section id="results" class="results hidden">
+                <!-- Corrected Output -->
+                <div class="card result-card">
+                    <div class="card-header">
+                        <div class="card-icon output-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                        <h2>Corrected Text</h2>
+                        <span class="badge badge-success" id="changes-badge">0 changes</span>
+                    </div>
+                    <div class="output-text" id="corrected-output"></div>
+                </div>
+
+                <!-- Token Comparison -->
+                <div class="card pipeline-card">
+                    <div class="card-header">
+                        <div class="card-icon compare-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                            </svg>
+                        </div>
+                        <h2>Token Analysis</h2>
+                    </div>
+                    <div class="token-comparison">
+                        <div class="token-row-header">
+                            <span class="token-col-label">Original</span>
+                            <span class="token-col-label"></span>
+                            <span class="token-col-label">Corrected</span>
+                        </div>
+                        <div id="token-analysis" class="token-analysis-list"></div>
+                    </div>
+                </div>
+
+                <!-- Slang Changes Detail -->
+                <div class="card changes-card">
+                    <div class="card-header">
+                        <div class="card-icon slang-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </div>
+                        <h2>Slang Corrections</h2>
+                    </div>
+                    <div id="slang-changes" class="changes-list"></div>
+                </div>
+
+                <!-- Word Detail Table -->
+                <div class="card detail-card">
+                    <div class="card-header">
+                        <div class="card-icon detail-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10 9 9 9 8 9"/>
+                            </svg>
+                        </div>
+                        <h2>Confidence Details</h2>
+                        <span class="badge">per-word analysis</span>
+                    </div>
+                    <div class="detail-table-wrap">
+                        <table class="detail-table" id="detail-table">
+                            <thead>
+                                <tr>
+                                    <th>Word</th>
+                                    <th>Type</th>
+                                    <th>Corrected</th>
+                                    <th>Confidence</th>
+                                    <th>P(Slang)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detail-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p></p>
+            <p class="footer-sub"></p>
+        </footer>
+    </div>
+
+    <script>
+        const examples = [
+            "tbh idk what ur talking about lol",
+            "omg brb gonna grab food rn lmao",
+            "ngl that was lowkey fire no cap frfr",
+            "im finna go to the store bcuz we need stuff asap",
+            "btw ur new car is bussin no cap, im so jealous",
+            "sry i was bsy, ttyl fam. hopefully we can hangout tmrw",
+            "plz chk ur email asap thx, i cnt believe u forgot",
+        ];
+
+        let exampleIndex = 0;
+
+        function loadExample() {
+            const textarea = document.getElementById('input-text');
+            textarea.value = examples[exampleIndex % examples.length];
+            exampleIndex++;
+            textarea.focus();
+            textarea.style.transform = 'scale(1.01)';
+            setTimeout(() => textarea.style.transform = 'scale(1)', 150);
+        }
+
+        function clearAll() {
+            document.getElementById('input-text').value = '';
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('input-text').focus();
+        }
+
+        async function correctText() {
+            const text = document.getElementById('input-text').value.trim();
+            if (!text) {
+                shakeElement(document.getElementById('input-text'));
+                return;
+            }
+
+            const btn = document.getElementById('correct-btn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+
+            btn.disabled = true;
+            btn.classList.add('loading');
+            loading.classList.remove('hidden');
+            results.classList.add('hidden');
+
+            try {
+                const response = await fetch('/correct', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                displayResults(data);
+            } catch (err) {
+                alert('Connection error: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                loading.classList.add('hidden');
+            }
+        }
+
+        function displayResults(data) {
+            const results = document.getElementById('results');
+
+            // Corrected output
+            document.getElementById('corrected-output').textContent = data.corrected;
+            document.getElementById('changes-badge').textContent = 
+                data.total_changes + (data.total_changes === 1 ? ' change' : ' changes');
+
+            // Token analysis — show original vs corrected with highlights
+            const tokenAnalysis = document.getElementById('token-analysis');
+            tokenAnalysis.innerHTML = data.word_details.map((detail, i) => {
+                if (detail.is_slang && detail.original.toLowerCase() !== detail.corrected.toLowerCase()) {
+                    return `
+                        <div class="token-row token-row-changed">
+                            <span class="token token-slang">${escapeHtml(detail.original)}</span>
+                            <svg class="token-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                            </svg>
+                            <span class="token token-corrected">${escapeHtml(detail.corrected)}</span>
+                        </div>`;
+                } else {
+                    return `
+                        <div class="token-row">
+                            <span class="token">${escapeHtml(detail.original)}</span>
+                            <span class="token-arrow-placeholder"></span>
+                            <span class="token token-same">${escapeHtml(detail.original)}</span>
+                        </div>`;
+                }
+            }).join('');
+
+            // Slang changes
+            const slangChanges = document.getElementById('slang-changes');
+            if (data.changes.length === 0) {
+                slangChanges.innerHTML = '<p class="no-changes">No slang detected in the input text.</p>';
+            } else {
+                slangChanges.innerHTML = data.changes.map(change => `
+                    <div class="change-item change-slang">
+                        <span class="change-from">${escapeHtml(change.from)}</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                        <span class="change-to">${escapeHtml(change.to)}</span>
+                        <span class="change-confidence">${(change.confidence * 100).toFixed(1)}%</span>
+                    </div>
+                `).join('');
+            }
+
+            // Detail table
+            const tbody = document.getElementById('detail-tbody');
+            tbody.innerHTML = data.word_details.map(detail => {
+                const typeClass = detail.is_slang ? 'type-slang' : 'type-formal';
+                const typeLabel = detail.is_slang ? 'Slang' : 'Formal';
+                const confPercent = (detail.confidence * 100).toFixed(1);
+                const slangPercent = (detail.p_slang * 100).toFixed(1);
+                
+                // Confidence bar color
+                const barColor = detail.is_slang 
+                    ? 'var(--slang-color)' 
+                    : 'var(--spell-color)';
+                
+                return `
+                    <tr class="${detail.is_slang && detail.original.toLowerCase() !== detail.corrected.toLowerCase() ? 'row-changed' : ''}">
+                        <td class="cell-word">${escapeHtml(detail.original)}</td>
+                        <td><span class="type-badge ${typeClass}">${typeLabel}</span></td>
+                        <td class="cell-corrected">${escapeHtml(detail.corrected)}</td>
+                        <td>
+                            <div class="confidence-bar-wrap">
+                                <div class="confidence-bar" style="width: ${confPercent}%; background: ${barColor}"></div>
+                            </div>
+                            <span class="confidence-text">${confPercent}%</span>
+                        </td>
+                        <td class="cell-prob">${slangPercent}%</td>
+                    </tr>`;
+            }).join('');
+
+            results.classList.remove('hidden');
+            results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function shakeElement(el) {
+            el.classList.add('shake');
+            setTimeout(() => el.classList.remove('shake'), 500);
+        }
+
+        // Ctrl+Enter to submit
+        document.getElementById('input-text').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                correctText();
+            }
+        });
+    </script>
+</body>
+</html>
